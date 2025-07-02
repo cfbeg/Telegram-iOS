@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches: [ master ]
-
   workflow_dispatch:
 
 jobs:
@@ -24,54 +23,41 @@ jobs:
       - name: Create canonical source directory
         run: |
           set -x
-          sudo mkdir -p /Users/Shared
-          cp -R $GITHUB_WORKSPACE /Users/Shared/
-          mv /Users/Shared/$(basename $GITHUB_WORKSPACE) /Users/Shared/telegram-ios
+          sudo mkdir -p /Users/telegram
+          sudo chown -R $(whoami) /Users/telegram
+          cp -R $GITHUB_WORKSPACE /Users/telegram/
+          mv /Users/telegram/$(basename $GITHUB_WORKSPACE) /Users/telegram/telegram-ios
 
       - name: Build the App
         run: |
           set -x
 
-          # source code paths are included in the final binary, so we need to make them stable across builds
-          SOURCE_DIR=/Users/Shared/telegram-ios
-
-          # use canonical bazel root
-          BAZEL_USER_ROOT="/private/var/tmp/_bazel_containerhost"
-
-          cd $SOURCE_DIR
+          mkdir -p $BUILD_WORKING_DIR
+          cd $SOURCE_PATH
 
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
-
+          
           export APP_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["app"]);')
           export COMMIT_COUNT=$(git rev-list --count HEAD)
           export COMMIT_COUNT="$(($COMMIT_COUNT+$BUILD_NUMBER_OFFSET))"
           export BUILD_NUMBER="$COMMIT_COUNT"
-          echo "BUILD_NUMBER=$(echo $BUILD_NUMBER)" >> $GITHUB_ENV
-          echo "APP_VERSION=$(echo $APP_VERSION)" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
 
-          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
-          python3 -u build-system/Make/Make.py \
-            --bazelUserRoot="$BAZEL_USER_ROOT" \
-            build \
-            --configurationPath="build-system/appstore-configuration.json" \
-            --codesigningInformationPath=build-system/fake-codesigning \
-            --configuration=release_arm64 \
-            --buildNumber="$BUILD_NUMBER"
+          # Build using fastlane (similar to master_build)
+          cd $SOURCE_PATH/ci
+          fastlane ci_build
 
-          # collect ipa
-          OUTPUT_PATH="build/artifacts"
-          rm -rf "$OUTPUT_PATH"
-          mkdir -p "$OUTPUT_PATH"
-          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
-            cp "$f" $OUTPUT_PATH/
-          done
+          cd $SOURCE_PATH
+          
+          ARTIFACTS_PATH=$BUILD_WORKING_DIR/artifacts
+          echo "ARTIFACTS_PATH=$ARTIFACTS_PATH" >> $GITHUB_ENV
 
-          # collect dsym
-          mkdir -p build/DSYMs
-          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/*.dSYM; do
-            cp -R "$f" build/DSYMs/
-          done
-          zip -r "./$OUTPUT_PATH/Telegram.DSYMs.zip" build/DSYMs 1>/dev/null
+          IPA_PATH=$ARTIFACTS_PATH/Telegram.ipa
+          echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
+
+          DSYMS_PATH=$ARTIFACTS_PATH/Telegram.DSYMs.zip
+          echo "DSYMS_PATH=$DSYMS_PATH" >> $GITHUB_ENV
 
       - name: Create Release
         id: create_release
@@ -93,7 +79,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.ipa
+          asset_path: ${{ env.IPA_PATH }}
           asset_name: Telegram.ipa
           asset_content_type: application/zip
 
@@ -104,6 +90,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: /Users/Shared/telegram-ios/build/artifacts/Telegram.DSYMs.zip
+          asset_path: ${{ env.DSYMS_PATH }}
           asset_name: Telegram.DSYMs.zip
           asset_content_type: application/zip
+
+    env:
+      BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram
+      BUILD_WORKING_DIR: /Users/telegram/build-working-dir
+      SOURCE_PATH: /Users/telegram/telegram-ios
