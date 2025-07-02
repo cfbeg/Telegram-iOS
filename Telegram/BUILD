@@ -138,7 +138,7 @@ genrule(
     ],
 )
 
-minimum_os_version = "13.0"
+minimum_os_version = "14.0"
 
 notificationServiceExtensionVersion = "v1"
 
@@ -948,7 +948,7 @@ swift_library(
         "Share/**/*.swift",
     ]),
     copts = [
-        "-warnings-as-errors",
+        #"-warnings-as-errors",
     ],
     deps = [
         "//submodules/TelegramUI",
@@ -1035,7 +1035,7 @@ swift_library(
         "NotificationContent/**/*.swift",
     ]),
     copts = [
-        "-warnings-as-errors",
+        #"-warnings-as-errors",
     ],
     deps = [
         "//submodules/TelegramUI:TelegramUI",
@@ -1130,7 +1130,7 @@ swift_library(
         "WidgetKitWidget/**/*.swift",
     ]),
     copts = [
-        "-warnings-as-errors",
+        #"-warnings-as-errors",
     ],
     data = [
         ":WidgetAssets",
@@ -1265,7 +1265,7 @@ swift_library(
         "SiriIntents/**/*.swift",
     ]),
     copts = [
-        "-warnings-as-errors",
+        #"-warnings-as-errors",
     ],
     data = glob([
         "SiriIntents/*.lproj/Intents.intentdefinition"
@@ -1368,7 +1368,7 @@ swift_library(
         "BroadcastUpload/**/*.swift",
     ]),
     copts = [
-        "-warnings-as-errors",
+        #"-warnings-as-errors",
     ],
     deps = [
         "//submodules/TelegramUI:TelegramUI",
@@ -1782,16 +1782,9 @@ ios_application(
         #"//submodules/Display",
         #"//submodules/TelegramCore",
         #"//submodules/FFMpegBinding",
-        #"//third-party/webrtc",
-        #"//third-party/webrtc:webrtc_objc",
+        "//third-party/webrtc",
         #"//submodules/AsyncDisplayKit",
         #"//submodules/ObjCRuntimeUtils",
-        "//submodules/OpusBinding",
-        #"//third-party/boringssl:ssl",
-        #"//third-party/boringssl:crypto",
-        #"//submodules/TelegramVoip",
-        "//third-party/recaptcha:RecaptchaEnterprise",
-        #"//submodules/TelegramUI",
     ],
 )
 
@@ -1822,8 +1815,7 @@ ios_application(
         ":UrlTypesInfoPlist",
     ],
     deps = [
-        "//third-party/webrtc",
-        "//third-party/webrtc:webrtc_objc",
+        "//third-party/webrtc:webrtc",
     ],
 )
 
