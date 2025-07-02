@@ -1064,7 +1064,7 @@ private final class LimitSheetContent: CombinedComponent {
                     string = strings.Premium_MaxFileSizeNoPremiumText(dataSizeString(premiumLimit, formatting: DataSizeStringFormatting(strings: environment.strings, decimalSeparator: environment.dateTimeFormat.decimalSeparator))).string
                 }
             case .accounts:
-                let limit = 3
+                let limit = 64
                 let premiumLimit = limit + 1
                 iconName = "Premium/Account"
                 badgeText = "\(component.count)"
