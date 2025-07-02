@@ -1071,11 +1071,11 @@ private final class LimitSheetContent: CombinedComponent {
                 string = component.count >= premiumLimit ? strings.Premium_MaxAccountsFinalText("\(premiumLimit)").string : strings.Premium_MaxAccountsText("\(limit)").string
                 defaultValue = component.count > limit ? "\(limit)" : ""
                 premiumValue = component.count >= premiumLimit ? "" : "\(premiumLimit)"
-                if component.count == limit {
-                    badgePosition = 0.5
-                } else {
-                    badgePosition = min(1.0, CGFloat(component.count) / CGFloat(premiumLimit))
-                }
+//                if component.count == limit {
+//                    badgePosition = 0.5
+//                } else {
+//                    badgePosition = min(1.0, CGFloat(component.count) / CGFloat(premiumLimit))
+//                }
                 badgeGraphPosition = 0.5
                 buttonAnimationName = "premium_addone"
             
