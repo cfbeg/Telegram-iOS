@@ -32,7 +32,7 @@ jobs:
         run: |
           set -x
 
-          cd $SOURCE_DIR
+          cd $SOURCE_PATH
 
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
 
