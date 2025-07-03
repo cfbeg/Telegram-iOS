@@ -32,22 +32,40 @@ jobs:
         run: |
           set -x
 
-          mkdir -p $BUILD_WORKING_DIR
-          cd $SOURCE_PATH/ci
-          fastlane master_build
+          cd $SOURCE_DIR
 
-          cd $SOURCE_PATH
-          APP_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["app"]);')
-          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
 
-          ARTIFACTS_PATH=$BUILD_WORKING_DIR/artifacts
-          echo "ARTIFACTS_PATH=$ARTIFACTS_PATH" >> $GITHUB_ENV
+          export APP_VERSION=$(cat versions.json | python3 -c 'import json,sys;obj=json.load(sys.stdin);print(obj["app"]);')
+          export COMMIT_COUNT=$(git rev-list --count HEAD)
+          export COMMIT_COUNT="$(($COMMIT_COUNT+$BUILD_NUMBER_OFFSET))"
+          export BUILD_NUMBER="$COMMIT_COUNT"
+          echo "BUILD_NUMBER=$(echo $BUILD_NUMBER)" >> $GITHUB_ENV
+          echo "APP_VERSION=$(echo $APP_VERSION)" >> $GITHUB_ENV
 
-          IPA_PATH=$ARTIFACTS_PATH/Telegram.ipa
-          echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
+          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
+          python3 -u build-system/Make/Make.py \
+            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            build \
+            --configurationPath="build-system/appstore-configuration.json" \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$BUILD_NUMBER"
 
-          DSYMS_PATH=$ARTIFACTS_PATH/Telegram.DSYMs.zip
-          echo "DSYMS_PATH=$DSYMS_PATH" >> $GITHUB_ENV
+          # collect ipa
+          OUTPUT_PATH="build/artifacts"
+          rm -rf "$OUTPUT_PATH"
+          mkdir -p "$OUTPUT_PATH"
+          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
+            cp "$f" $OUTPUT_PATH/
+          done
+
+          # collect dsym
+          mkdir -p build/DSYMs
+          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/*.dSYM; do
+            cp -R "$f" build/DSYMs/
+          done
+          zip -r "./$OUTPUT_PATH/Telegram.DSYMs.zip" build/DSYMs 1>/dev/null
 
       - name: Create Release
         id: create_release
